@@ -1,0 +1,10 @@
+# Supabase CLI 설정 (supabase link 후 db push / functions deploy 에 사용)
+project_id = "doodle-party"
+
+[auth]
+enable_anonymous_sign_ins = true
+
+[functions.game]
+# 사용자 JWT 는 함수 내부에서 auth.getUser() 로 직접 검증합니다.
+# (새 publishable 키 형식과 호환되도록 게이트웨이 JWT 검증은 끕니다)
+verify_jwt = false

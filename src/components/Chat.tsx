@@ -22,13 +22,44 @@ export default function Chat({ className = '' }: { className?: string }) {
   const [sending, setSending] = useState(false);
   const lastSent = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  /** 사용자가 맨 아래를 보고 있는지 (위로 올려 읽는 중이면 false) */
   const stick = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [unread, setUnread] = useState(0);
 
-  useLayoutEffect(() => {
+  const scrollToBottom = () => {
     const el = listRef.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
+  // 새 메시지가 오면 맨 아래로. (메시지는 최대 200개만 보관하므로 개수가 아니라 마지막 id 로 감지)
+  const lastId = messages.length ? messages[messages.length - 1].id : 0;
+  useLayoutEffect(() => {
+    if (!lastId) return;
+    if (stick.current) {
+      scrollToBottom();
+      requestAnimationFrame(() => stick.current && scrollToBottom());
+    } else {
+      setUnread((n) => n + 1);
+    }
+  }, [lastId]);
+
+  // 채팅창 크기·내용 높이가 바뀌어도(화면 전환, 모바일 키보드 등) 맨 아래 유지
+  useEffect(() => {
+    const ro = new ResizeObserver(() => {
+      if (stick.current) scrollToBottom();
+    });
+    if (listRef.current) ro.observe(listRef.current);
+    if (contentRef.current) ro.observe(contentRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const jumpToBottom = () => {
+    stick.current = true;
+    setUnread(0);
+    scrollToBottom();
+  };
 
   // 내 차례가 아닌데 그리는 중이면 입력창에 자동 포커스 (PC)
   useEffect(() => {
@@ -49,7 +80,7 @@ export default function Chat({ className = '' }: { className?: string }) {
     if (Date.now() - lastSent.current < 350) return;
     lastSent.current = Date.now();
     setSending(true);
-    stick.current = true;
+    jumpToBottom();
     try {
       const res = await api.sendMessage(state.room.id, t);
       setText('');
@@ -72,18 +103,34 @@ export default function Chat({ className = '' }: { className?: string }) {
         <MessageCircle size={18} className="text-bubble" />
         <h2 className="font-display text-lg">{guessing ? '정답 맞히기' : '채팅'}</h2>
       </header>
-      <div
-        ref={listRef}
-        className="scroll-soft flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 py-3"
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
-        }}
-      >
-        {messages.length === 0 && <p className="m-auto font-display text-ink/40">아직 조용해요… 인사해 볼까요? 👋</p>}
-        {messages.map((m) => (
-          <MessageRow key={m.id} m={m} mine={m.player_id === state.me} />
-        ))}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={listRef}
+          className="scroll-soft min-h-0 flex-1 overflow-y-auto px-3 py-3"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+            if (stick.current) setUnread(0);
+          }}
+        >
+          <div ref={contentRef} className="flex min-h-full flex-col gap-1.5">
+            {messages.length === 0 && <p className="m-auto font-display text-ink/40">아직 조용해요… 인사해 볼까요? 👋</p>}
+            {messages.map((m) => (
+              <MessageRow key={m.id} m={m} mine={m.player_id === state.me} />
+            ))}
+          </div>
+        </div>
+        {unread > 0 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
+            <button
+              type="button"
+              onClick={jumpToBottom}
+              className="animate-pop-in pointer-events-auto rounded-full bg-bubble px-3.5 py-1.5 font-display text-sm text-white shadow-[0_3px_0_0_#d14f7c]"
+            >
+              새 메시지 {unread > 99 ? '99+' : unread}개 ↓
+            </button>
+          </div>
+        )}
       </div>
       <form
         className="flex gap-2 border-t-2 border-cream p-2.5"

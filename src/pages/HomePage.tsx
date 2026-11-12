@@ -47,7 +47,7 @@ export default function HomePage() {
           친구들과 함께 <span className="text-bubble">그리고</span> <span className="text-sky-dark">맞히는</span> 실시간 그림 퀴즈!
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
-          <span className="chip bg-butter/70">👥 4~10명</span>
+          <span className="chip bg-butter/70">👥 2~10명</span>
           <span className="chip bg-mint/70">✨ 회원가입 없이 바로</span>
           <span className="chip bg-sky/70">📱 PC · 모바일</span>
         </div>

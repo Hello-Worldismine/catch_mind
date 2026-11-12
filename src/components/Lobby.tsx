@@ -13,7 +13,7 @@ import { findMe, useRoom } from '../store/roomStore';
 import { toast } from '../store/toastStore';
 import type { Settings } from '../types';
 
-const MIN_PLAYERS = 4;
+const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 10;
 
 const SETTING_ROWS: {

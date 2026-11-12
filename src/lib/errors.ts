@@ -5,7 +5,7 @@ const MESSAGES: Record<string, string> = {
   NOT_MEMBER: '이 방의 참가자가 아니에요.',
   NOT_HOST: '방장만 할 수 있어요.',
   NOT_DRAWER: '출제자만 할 수 있어요.',
-  NOT_ENOUGH_PLAYERS: '최소 4명이 모여야 시작할 수 있어요.',
+  NOT_ENOUGH_PLAYERS: '최소 2명이 모여야 시작할 수 있어요.',
   NOT_ALL_READY: '모든 친구가 준비 완료를 눌러야 시작할 수 있어요.',
   INVALID_PHASE: '지금은 할 수 없는 동작이에요.',
   TURN_OVER: '이미 끝난 문제예요.',

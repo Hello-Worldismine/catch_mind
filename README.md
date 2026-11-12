@@ -1,6 +1,6 @@
 # 🖍️ 낙서팡팡 — 실시간 멀티플레이 그림 퀴즈
 
-4~10명이 각자의 PC·모바일 브라우저에서 접속해 **그리고 맞히는** 실시간 파티게임입니다.
+2~10명이 각자의 PC·모바일 브라우저에서 접속해 **그리고 맞히는** 실시간 파티게임입니다.
 회원가입 없이 캐릭터와 닉네임만 고르면 바로 참여할 수 있어요.
 
 - **Frontend**: React 19 + Vite + TypeScript + Tailwind CSS v4 + Zustand + Lucide
@@ -39,7 +39,8 @@ catch_mind/
 │  ├─ migrations/
 │  │  ├─ 20261112000000_schema.sql      # 테이블·인덱스·RLS·Realtime 권한
 │  │  ├─ 20261112000100_game_logic.sql  # 서버 게임 로직 (상태 전환·정답 판정·점수)
-│  │  └─ 20261112000200_words_seed.sql  # 제시어 410개 + 별칭
+│  │  ├─ 20261112000200_words_seed.sql  # 제시어 410개 + 별칭
+│  │  └─ 20261113000000_min_players_2.sql # 최소 시작 인원 2명
 │  ├─ functions/game/index.ts           # Edge Function (JWT 검증 → 게임 로직 호출)
 │  └─ optional/cron_cleanup.sql         # (선택) pg_cron 방 정리
 └─ tests/
@@ -85,10 +86,11 @@ npm run dev             # http://localhost:5173
 
 ### 3-2. 데이터베이스 마이그레이션
 **방법 A — 대시보드 (가장 쉬움)**
-SQL Editor 에서 아래 3개 파일 내용을 **순서대로** 붙여넣고 실행:
+SQL Editor 에서 아래 4개 파일 내용을 **순서대로** 붙여넣고 실행:
 1. `supabase/migrations/20261112000000_schema.sql`
 2. `supabase/migrations/20261112000100_game_logic.sql`
 3. `supabase/migrations/20261112000200_words_seed.sql`
+4. `supabase/migrations/20261113000000_min_players_2.sql`
 
 **방법 B — Supabase CLI**
 ```bash
@@ -149,7 +151,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   # 또는 기존 anon 키 (eyJ
 
 ### 상태 흐름
 ```
-WAITING ──(방장 시작: 4명↑, 모두 준비)──▶ WORD_SELECT (10초, 후보 3개)
+WAITING ──(방장 시작: 2명↑, 모두 준비)──▶ WORD_SELECT (10초, 후보 3개)
    ▲                                          │ 선택/자동선택
    │                                          ▼
    │                                       DRAWING (60/90/120초)

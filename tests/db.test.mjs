@@ -122,9 +122,9 @@ const created = await call('game_create_room', A, '에이', 'bunny');
 const code = created.code;
 const roomId = created.room_id;
 ok(/^[A-Z0-9]{6}$/.test(code), `6자리 방 코드 ${code}`);
+ok((await callErr('game_start', A, roomId)) === 'NOT_ENOUGH_PLAYERS', '1명이면 시작 불가');
 await call('game_join_room', B, code.toLowerCase(), '비', 'cat');
 await call('game_join_room', C, code, '씨', 'frog');
-ok((await callErr('game_start', A, roomId)) === 'NOT_ENOUGH_PLAYERS', '3명이면 시작 불가');
 await call('game_join_room', D, code, '디', 'panda');
 let sA = await state(A, code);
 ok(sA.players.length === 4, '4명 모두 대기실에 보임');
@@ -384,6 +384,39 @@ ok(s2.room.status === 'GAME_RESULT', '게임 중 1명만 남으면 게임 종료
 await call('game_leave_room', users[1], r2.room_id);
 ok((await q('select status from rooms where id=$1', [r2.room_id]))[0].status === 'CLOSED', '모두 나가면 방 닫힘');
 ok((await callErr('game_join_room', users[10], r2.code, '늦었다', 'cat')) === 'ROOM_CLOSED', '닫힌 방 입장 불가');
+
+section('시나리오 4: 2명 게임');
+{
+  const [X, Y] = [await newUser(), await newUser()];
+  const r = await call('game_create_room', X, '둘이서', 'bear');
+  ok((await callErr('game_start', X, r.room_id)) === 'NOT_ENOUGH_PLAYERS', '1명이면 시작 불가');
+  await call('game_join_room', Y, r.code, '함께', 'koala');
+  ok((await callErr('game_start', X, r.room_id)) === 'NOT_ALL_READY', '2명이어도 준비 완료 필요');
+  await call('game_set_ready', Y, r.room_id, true);
+  await call('game_start', X, r.room_id);
+  let s = await state(X, r.code);
+  ok(s.room.status === 'WORD_SELECT' && s.turn.drawer_id === s.me, '2명으로 게임 시작, 방장이 첫 출제자');
+  await call('game_choose_word', X, r.room_id, s.turn.id, 0);
+  const w = await secretWord(s.turn.id);
+  const res = await call('game_submit_message', Y, r.room_id, w);
+  s = await state(X, r.code);
+  ok(res.result === 'correct' && s.room.status === 'ROUND_RESULT' && s.turn.end_reason === 'all_guessed', '유일한 정답자가 맞히면 즉시 종료');
+  let guard = 0;
+  while (guard++ < 30) {
+    const st = await state(X, r.code);
+    if (st.room.status === 'GAME_RESULT') break;
+    if (st.room.status === 'ROUND_RESULT') {
+      await expire(r.room_id);
+      await call('game_tick', X, r.room_id);
+      continue;
+    }
+    const du = st.turn.drawer_id === st.me ? X : Y;
+    if (st.room.status === 'WORD_SELECT') await call('game_choose_word', du, r.room_id, st.turn.id, 0);
+    await call('game_skip_turn', du, r.room_id, st.turn.id);
+  }
+  const t2 = await q(`select count(*)::int n from turns where room_id=$1`, [r.room_id]);
+  ok((await state(X, r.code)).room.status === 'GAME_RESULT' && t2[0].n === 6, `3라운드 × 2명 = ${t2[0].n}문제 후 종료`);
+}
 
 section('만료된 방 정리');
 await q(`update rooms set last_activity_at = now() - interval '7 hours' where id = $1`, [roomId]);
